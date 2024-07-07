@@ -62,32 +62,21 @@ app.post('/api/orders', upload.single('photo'), (req, res) => {
   });
 });
 
-// Handle POST request to /api/process-image
-app.post('/api/process-image', async (req, res) => {
-  const { orderId } = req.body;
-
+app.post('/api/process-image', upload.fields([
+  { name: 'template', maxCount: 1 },
+  { name: 'uploadedPhoto', maxCount: 1 }
+]), async (req, res) => {
   try {
-    const order = await new Promise((resolve, reject) => {
-      db.findOne({ _id: orderId }, (err, doc) => {
-        if (err) reject(err);
-        else resolve(doc);
-      });
-    });
+    const templateName = req.body.template;
+    const uploadedPhoto = req.files['uploadedPhoto'][0];
 
-    if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
-    }
+    const templatePath = path.join(__dirname, 'assets', 'templates', templateName);
 
-    const inputPath = path.join(__dirname, 'uploads', order.photo.filename);
-    const templatePath = path.join(__dirname, 'assets', order.template);
-    const outputPath = path.join(__dirname, 'processed', `${orderId}.jpg`);
+    const processedImage = await sharp(templatePath)
+      .composite([{ input: uploadedPhoto.buffer, gravity: 'center' }])
+      .toBuffer();
 
-    // Process the image (this is a simple overlay, you might want to adjust this)
-    await sharp(templatePath)
-      .composite([{ input: inputPath, gravity: 'center' }])
-      .toFile(outputPath);
-
-    res.json({ processedImageUrl: `/processed/${orderId}.jpg` });
+    res.json({ processedImage: processedImage.toString('base64') });
   } catch (error) {
     console.error('Error processing image:', error);
     res.status(500).json({ error: 'Failed to process image' });
