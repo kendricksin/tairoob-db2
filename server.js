@@ -32,7 +32,7 @@ const upload = multer({
 });
 
 // Handle POST request to /api/orders
-app.post('/api/orders', upload.single('photo'), (req, res) => {
+app.post('/api/orders', upload.single('photo'), (req, res) => {cd 
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
